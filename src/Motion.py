@@ -27,14 +27,14 @@ class Drive:
         # Auto-disable motors on program exit
         atexit.register(self.shutdown)
     
-    def drive(self, speed=self.speed, steering=self.steering):
+    def drive(self, speed=0, steering=0):
         """Propel the vehicle
         
         Parameters:
             speed (float): -255 to 255, negative vals move backward
             steering (float): -1 to 1, negative vals steer left
         """
-        self.speed = speed
+        self.speed = int(speed)
         self.steering = steering
         
         if self.speed == 0:    # Stop
@@ -52,10 +52,14 @@ class Drive:
             self.mh.getMotor(2).setSpeed(self.speed)
         elif self.steering > 0:    # Turn to the right
             self.mh.getMotor(1).setSpeed(self.speed)
-            self.mh.getMotor(2).setSpeed((1-np.abs(self.steering))*self.speed)
+            m2speed = int((1-np.abs(self.steering))*self.speed)
+            self.mh.getMotor(2).setSpeed(m2speed)
         else:    # Turn to the left
+            m1speed = int((1-np.abs(self.steering))*self.speed)
+            self.mh.getMotor(1).setSpeed(m1speed)
             self.mh.getMotor(2).setSpeed(self.speed)
-            self.mh.getMotor(1).setSpeed((1-np.abs(self.steering))*self.speed)
+        
+        return True
     
     def shutdown(self):
         """Shuts down all motors
@@ -89,7 +93,7 @@ class Drive:
             self.mh.getMotor(1).run(Adafruit_MotorHAT.BACKWARD)
             self.mh.getMotor(2).run(Adafruit_MotorHAT.FORWARD)
             
-        self.mh.getMotor(1).setSpeed(32)
-        self.mh.getMotor(2).setSpeed(32)
+        self.mh.getMotor(1).setSpeed(128)
+        self.mh.getMotor(2).setSpeed(128)
         time.sleep(0.05 * np.abs(angle))
         self.stop()
