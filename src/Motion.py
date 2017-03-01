@@ -17,71 +17,67 @@ class Drive:
         
         Instantiates:
             self.mh (instance): Motor hat object
-            self.steering (float): 
         """
         self.mh = Adafruit_MotorHAT(addr=hataddr)
-        self.speed = 0
-        self.steering = 0
         self.stop()
         
         # Auto-disable motors on program exit
         atexit.register(self.shutdown)
     
-    def drive(self, speed=0, steering=0):
-        """Propel the vehicle
+    def drive(self, speed=0, steering=0.):
+        """Command the rover to move
         
         Parameters:
-            speed (float): -255 to 255, negative vals move backward
+            speed (int): -255 to 255, negative vals move backward
             steering (float): -1 to 1, negative vals steer left
         """
-        self.speed = int(speed)
-        self.steering = steering
+        speed = int(speed)
         
-        if self.speed == 0:    # Stop
+        if speed == 0:    # Stop
             self.stop()
             return True
-        elif self.speed > 0:    # Move forward
+        elif speed > 0:    # Move forward
             self.mh.getMotor(1).run(Adafruit_MotorHAT.FORWARD)
             self.mh.getMotor(2).run(Adafruit_MotorHAT.FORWARD)
-        else:    # move backward
+        else:    # Move backward
             self.mh.getMotor(1).run(Adafruit_MotorHAT.BACKWARD)
             self.mh.getMotor(2).run(Adafruit_MotorHAT.BACKWARD)
         
-        if self.steering == 0:    # Straight ahead
-            self.mh.getMotor(1).setSpeed(self.speed)
-            self.mh.getMotor(2).setSpeed(self.speed)
-        elif self.steering > 0:    # Turn to the right
-            self.mh.getMotor(1).setSpeed(self.speed)
-            m2speed = int((1-np.abs(self.steering))*self.speed)
-            self.mh.getMotor(2).setSpeed(m2speed)
+        if steering == 0:    # Straight ahead
+            self.mh.getMotor(1).setSpeed(np.abs(speed))
+            self.mh.getMotor(2).setSpeed(np.abs(speed))
+        elif steering > 0:    # Turn to the right
+            tspeed = int((1-np.abs(steering))*np.abs(speed))
+            self.mh.getMotor(1).setSpeed(np.abs(speed))
+            self.mh.getMotor(2).setSpeed(tspeed)
         else:    # Turn to the left
-            m1speed = int((1-np.abs(self.steering))*self.speed)
-            self.mh.getMotor(1).setSpeed(m1speed)
-            self.mh.getMotor(2).setSpeed(self.speed)
+            tspeed = int((1-np.abs(steering))*np.abs(speed))
+            self.mh.getMotor(1).setSpeed(tspeed)
+            self.mh.getMotor(2).setSpeed(np.abs(speed))
         
         return True
     
     def shutdown(self):
         """Shuts down all motors
         """
-        self.mh.getMotor(1).run(Adafruit_MotorHAT.RELEASE)
-        self.mh.getMotor(2).run(Adafruit_MotorHAT.RELEASE)
-        self.mh.getMotor(3).run(Adafruit_MotorHAT.RELEASE)
-        self.mh.getMotor(4).run(Adafruit_MotorHAT.RELEASE)
+        for i in range(1,5):
+            self.mh.getMotor(i).run(Adafruit_MotorHAT.RELEASE)
+        
+        return True
     
     def stop(self):
         """Stop the robot
         """
-        self.speed = 0
-        self.mh.getMotor(1).setSpeed(0)
-        self.mh.getMotor(2).setSpeed(0)
+        for i in range(1,3):
+            self.mh.getMotor(i).setSpeed(0)
         
+        return True
     
     def turn(self, angle=0):
         """Perform an in-place heading adjustment
         
         Parameters:
-            angle (numeric): Degrees positive or negative to turn
+            angle (numeric): Turn angle in radians, negative is to the left
         """
         self.stop()
         dir = np.abs(angle) / angle
@@ -92,8 +88,9 @@ class Drive:
         else:    # Turn left
             self.mh.getMotor(1).run(Adafruit_MotorHAT.BACKWARD)
             self.mh.getMotor(2).run(Adafruit_MotorHAT.FORWARD)
-            
+        
         self.mh.getMotor(1).setSpeed(128)
         self.mh.getMotor(2).setSpeed(128)
-        time.sleep(0.05 * np.abs(angle))
+        time.sleep(0.05 * np.abs(angle)) # TODO: Test this and adjust
         self.stop()
+        return True
