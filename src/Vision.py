@@ -47,8 +47,8 @@ class Vision:
             output (np.array): Photograph in array form
         """
         # Image buffer must be multiple of 32 in x, multiple of 16 in y
-        buffer_y = 32. * np.ceil(self.camera.resolution[0] / 32.)
-        buffer_x = 16. * np.ceil(self.camera.resolution[1] / 16.)
+        buffer_y = int(32 * np.ceil(self.camera.resolution[0] / 32.))
+        buffer_x = int(16 * np.ceil(self.camera.resolution[1] / 16.))
         output = np.empty((buffer_x * buffer_y * 3,), dtype=np.uint8)
         self.camera.capture(output, 'rgb')
         output = output.reshape((buffer_x, buffer_y, 3))

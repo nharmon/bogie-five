@@ -24,12 +24,14 @@ class Drive:
         # Auto-disable motors on program exit
         atexit.register(self.shutdown)
     
-    def drive(self, speed=0, steering=0.):
+    def drive(self, speed=0, steering=0., distance=0):
         """Command the rover to move
         
         Parameters:
             speed (int): -255 to 255, negative vals move backward
             steering (float): -1 to 1, negative vals steer left
+            distance (float): Calibrated to centimeters, Nonpositive vals
+                              drive until told to stop.
         """
         speed = int(speed)
         
@@ -54,6 +56,10 @@ class Drive:
             tspeed = int((1-np.abs(steering))*np.abs(speed))
             self.mh.getMotor(1).setSpeed(tspeed)
             self.mh.getMotor(2).setSpeed(np.abs(speed))
+        
+        if distance > 0:
+            time.sleep(0.011 * distance) ## TODO: Calibrate
+            self.stop()
         
         return True
     
@@ -91,6 +97,6 @@ class Drive:
         
         self.mh.getMotor(1).setSpeed(128)
         self.mh.getMotor(2).setSpeed(128)
-        time.sleep(0.05 * np.abs(angle)) # TODO: Test this and adjust
+        time.sleep(0.011 * np.abs(angle))
         self.stop()
         return True
