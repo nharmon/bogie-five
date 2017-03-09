@@ -24,14 +24,12 @@ class Drive:
         # Auto-disable motors on program exit
         atexit.register(self.shutdown)
     
-    def drive(self, speed=0, steering=0., distance=0):
-        """Command the rover to move
+    def drive(self, speed=0, steering=0.):
+        """Puts rover into continuous motion
         
         Parameters:
             speed (int): -255 to 255, negative vals move backward
             steering (float): -1 to 1, negative vals steer left
-            distance (float): Calibrated to centimeters, Nonpositive vals
-                              drive until told to stop.
         """
         speed = int(speed)
         
@@ -49,16 +47,26 @@ class Drive:
             self.mh.getMotor(1).setSpeed(np.abs(speed))
             self.mh.getMotor(2).setSpeed(np.abs(speed))
         elif steering > 0:    # Turn to the right
-            tspeed = int((1-np.abs(steering))*np.abs(speed))
+            speed2 = int((1-np.abs(steering))*np.abs(speed))
             self.mh.getMotor(1).setSpeed(np.abs(speed))
-            self.mh.getMotor(2).setSpeed(tspeed)
+            self.mh.getMotor(2).setSpeed(speed2)
         else:    # Turn to the left
-            tspeed = int((1-np.abs(steering))*np.abs(speed))
-            self.mh.getMotor(1).setSpeed(tspeed)
+            speed2 = int((1-np.abs(steering))*np.abs(speed))
+            self.mh.getMotor(1).setSpeed(speed2)
             self.mh.getMotor(2).setSpeed(np.abs(speed))
         
-        if distance > 0:
-            time.sleep(0.011 * distance) ## TODO: Calibrate
+        return True
+    
+    def move(self, distance=0.):
+        """Move forward (or backward) the given distance and then stop
+        
+        Parameters:
+            distance (float): Distance to travel (in centimeters)
+        """
+        if np.abs(distance) > 0:
+            speed = 128 * int(np.abs(distance) / distance)
+            self.drive(speed, 0.)
+            time.sleep(0.011 * distance) #TODO: Calibrate
             self.stop()
         
         return True
