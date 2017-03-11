@@ -66,7 +66,7 @@ class Drive:
         if np.abs(distance) > 0:
             speed = 128 * int(np.abs(distance) / distance)
             self.drive(speed, 0.)
-            time.sleep(0.011 * distance) #TODO: Calibrate
+            time.sleep(0.011 * np.abs(distance)) #TODO: Calibrate
             self.stop()
         
         return True
