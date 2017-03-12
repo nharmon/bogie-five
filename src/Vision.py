@@ -73,18 +73,17 @@ class Tracker:
             self.object (numpy.array): object template
             self.img (numpy.array): current image
             self.particles (list): initial set of filtered particles
-            self.weights (list): particle weights
-            self.center (tuple): best guess of where 
+            self.weights (list): particle weights (via self.track)
+            self.center (tuple): best guess of where object is in image
         """
         self.object = object
         self.img = img
         
         # Generate particles randomly
         particles = np.random.rand(num_particles,2)
-        particles[:,0] *= self.frame.shape[0]
-        particles[:,1] *= self.frame.shape[1]
+        particles[:,0] *= self.img.shape[0]
+        particles[:,1] *= self.img.shape[1]
         self.particles = particles.astype(int).tolist()
-        self.weights = self.weigh_particles()
         self.center = self.track(self.img)
     
     def compareMSE(self, img1, img2, sigma=10.):
@@ -119,10 +118,8 @@ class Tracker:
         
         Returns:
             new_particles (list): resampled particles
-            new_weights (list): weights of resampled particles
         """
         new_particles = []
-        new_weights = []
         N = len(particles)
         index = int(random.random() * N)
         beta = 0.
@@ -133,10 +130,11 @@ class Tracker:
                 beta -= weights[index]
                 index = (index + 1) % N
             
-            new_particles.append(particles[index])
-            new_weights.append(weights[index])
+            x = particles[index][0] + random.randint(-10,10)
+            y = particles[index][1] + random.randint(-10,10)
+            new_particles.append([x,y])
         
-        return new_particles, new_weights
+        return new_particles
     
     def weigh_particles(self):
         """Produces a list of particle weights
@@ -147,10 +145,11 @@ class Tracker:
         weights = []
         for i in range(len(self.particles)):
             # Construct our particle frame
-            p_t = int(self.particles[i,0] - np.floor(self.object.shape[0]/2.))
-            p_b = int(self.particles[i,0] + np.ceil(self.object.shape[0]/2.))
-            p_l = int(self.particles[i,1] - np.floor(self.object.shape[1]/2.))
-            p_r = int(self.particles[i,1] + np.ceil(self.object.shape[1]/2.))
+            #print i
+            p_t = int(self.particles[i][0] - np.floor(self.object.shape[0]/2.))
+            p_b = int(self.particles[i][0] + np.ceil(self.object.shape[0]/2.))
+            p_l = int(self.particles[i][1] - np.floor(self.object.shape[1]/2.))
+            p_r = int(self.particles[i][1] + np.ceil(self.object.shape[1]/2.))
             try:
                 p_frame = self.img[p_t:p_b,p_l:p_r]
             except:
@@ -160,7 +159,7 @@ class Tracker:
             if p_frame.shape <> self.object.shape:    # Frame is off the image
                 weights.append(0.)
             else: 
-                similarity = compareMSE(p_frame, self.object)
+                similarity = self.compareMSE(p_frame, self.object)
                 weights.append(similarity)
         
         # Normalize the weights
@@ -171,7 +170,7 @@ class Tracker:
         
         return weights
     
-    def track(img):
+    def track(self, img):
         """Guesses where our object is in the new image
         
         Parameters:
@@ -181,18 +180,19 @@ class Tracker:
             center (tuple): Best guess of object's center
         """
         self.img = img
-        self.weights = weigh_particles()
-        self.particles, self.weights = resample(self.particles, self.weights)
+        self.weights = self.weigh_particles()
+        self.particles = self.resample(self.particles, self.weights)
+        self.weights = self.weigh_particles()
         if max(self.weights) == 1./len(self.particles):    # Wasn't found
             return False
         
-        u_weighted_mean = 0
-        v_weighted_mean = 0
+        u_weighted_mean = 0.
+        v_weighted_mean = 0.
         for i in range(len(self.particles)):
-            u_weighted_mean += self.particles[i, 0] * self.weights[i]
-            v_weighted_mean += self.particles[i, 1] * self.weights[i]
+            u_weighted_mean += self.particles[i][0] * self.weights[i]
+            v_weighted_mean += self.particles[i][1] * self.weights[i]
         
-        self.center = (u_weighted_mean, v_weighted_mean)
+        self.center = (int(u_weighted_mean), int(v_weighted_mean))
         ### TODO: Update the object template with the new appearance
         
         return self.center
