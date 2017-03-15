@@ -8,6 +8,7 @@ import numpy as np
 class graphSLAM:
     """Implementation of a graph-based Simultaneous Localization and 
        Mapping (SLAM) algorithm.
+       Reference: http://robots.stanford.edu/papers/thrun.graphslam.pdf
     """
     def __init__(self, measurement_noise=2, motion_noise=2):
         """Initialize the graphs
