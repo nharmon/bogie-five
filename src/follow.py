@@ -1,7 +1,7 @@
 # Nathan Harmon
 # https://github.com/nharmon/bogie-five
 #
-# Follow object test
+# Object following demonstration
 #
 from Motion import *
 from Vision import *
@@ -27,17 +27,17 @@ def follow(target, speed=100):
         pos = tracker.track(img)
         
         # If target wasn't found, turn 0.5 radians to the right and try again.
+        # Otherwise, use the X coordinate of the target position in the camera
+        # as the steering input.
+        # TODO: Implement a smoothening method in case the camera isn't
+        #       completely straight (it never is)
         if pos == False:
             drive.turn(0.5)
-            continue
-        
-        # If target is found, Use the X coordinate of the target position in 
-        # the camera as the steering input.
-        # TODO: May need to implement PIL if camera isn't perfectly straight
-        steering = ((2. * tracker.center[0]) / img.shape[1]) - 1
-        #drive.drive(speed,steering)
-        time.sleep(0.5)
-        
+        else:
+            steering = ((2. * tracker.center[0]) / img.shape[1]) - 1
+            #drive.drive(speed,steering)
+            #time.sleep(0.5)       # Do we really need to delay?
+    
     drive.shutdown()
     return True
 
