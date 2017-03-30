@@ -17,19 +17,25 @@ def follow(target, speed=100):
     """
     drive = Drive()
     vision = Vision()
-    img = Vision.shoot()
+    img = vision.shoot()
 
     tracker = Tracker(target, img)
     
     while True:
         # Update image tracker with new image taken
-        img = Vision.shoot()
+        img = vision.shoot()
         pos = tracker.track(img)
-        # Use the X coordinate of the target position in the camera as the 
-        # steering input.
+        
+        # If target wasn't found, turn 0.5 radians to the right and try again.
+        if pos == False:
+            drive.turn(0.5)
+            continue
+        
+        # If target is found, Use the X coordinate of the target position in 
+        # the camera as the steering input.
         # TODO: May need to implement PIL if camera isn't perfectly straight
-        steering = ((2. * pos[0]) / img.shape[1]) - 1
-        drive.drive(speed,steering)
+        steering = ((2. * tracker.center[0]) / img.shape[1]) - 1
+        #drive.drive(speed,steering)
         time.sleep(0.5)
         
     drive.shutdown()
