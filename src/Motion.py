@@ -15,8 +15,7 @@ class Drive:
     def __init__(self, hataddr=0x60):
         """Initialize the drive class
         
-        Instantiates:
-            self.mh (instance): Motor hat object
+        :inst self.mh (instance): Motor hat object
         """
         self.mh = Adafruit_MotorHAT(addr=hataddr)
         self.stop()
@@ -27,9 +26,8 @@ class Drive:
     def drive(self, speed=0, steering=0.):
         """Puts rover into continuous motion
         
-        Parameters:
-            speed (int): -255 to 255, negative vals move backward
-            steering (float): -1 to 1, negative vals steer left
+        :param speed (int): -255 to 255, negative vals move backward
+        :param steering (float): -1 to 1, negative vals steer left
         """
         speed = int(speed)
         
@@ -60,13 +58,13 @@ class Drive:
     def move(self, distance=0.):
         """Move forward (or backward) the given distance and then stop
         
-        Parameters:
-            distance (float): Distance to travel (in centimeters)
+        :param distance (float): Distance to travel (in centimeters)
         """
+        # TODO: Find a way to calibrate distance
         if np.abs(distance) > 0:
             speed = 128 * int(np.abs(distance) / distance)
             self.drive(speed, 0.)
-            time.sleep(0.011 * np.abs(distance)) #TODO: Calibrate
+            time.sleep(0.011 * np.abs(distance))
             self.stop()
         
         return True
@@ -90,8 +88,7 @@ class Drive:
     def turn(self, angle=0):
         """Perform an in-place heading adjustment
         
-        Parameters:
-            angle (numeric): Turn angle in radians, negative is to the left
+        :param angle (float): Turn angle in radians, negative is to the left
         """
         self.stop()
         dir = np.abs(angle) / angle

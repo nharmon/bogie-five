@@ -16,8 +16,7 @@ class Vision:
     def __init__(self, res=(320, 240), framerate=24):
         """Initialize the vision class
         
-        Instantiates:
-            self.camera (picamera class): Camera object
+        :inst self.camera (picamera class): Camera object
         """
         self.camera = picamera.PiCamera()
         self.camera.resolution = res
@@ -29,11 +28,9 @@ class Vision:
     def makePanorama(self, images):
         """Generate a panorama from multiple images
         
-        Parameters:
-             images (list): List of np.array images
+        :param images (list): List of np.array images
         
-        Returns:
-             result (np.array): Panorama
+        :return result (numpy.array): Panorama
         """
         #TODO: implement stiching and warping from cv2
         
@@ -43,8 +40,7 @@ class Vision:
     def shoot(self):
         """Takes a photo from the camera
         
-        Returns:
-            output (np.array): Photograph in array form
+        :return output (numpy.array): Photograph in array form
         """
         # Image buffer must be multiple of 32 in x, multiple of 16 in y
         buffer_y = int(32 * np.ceil(self.camera.resolution[0] / 32.))
@@ -64,17 +60,15 @@ class Tracker:
     def __init__(self, object, img, num_particles=100):
         """Initialize
         
-        Parameters:
-            object (numpy.array): template for object we're tracking
-            img (numpy.array): first image for tracking
-            particles (int): number of particles to use
+        :param object (numpy.array): template for object we're tracking
+        :param img (numpy.array): first image for tracking
+        :param particles (int): number of particles to use
         
-        Instantiates:
-            self.object (numpy.array): object template
-            self.img (numpy.array): current image
-            self.particles (list): initial set of filtered particles
-            self.weights (list): particle weights (via self.track)
-            self.center (tuple): best guess of where object is in image
+        :inst self.object (numpy.array): object template
+        :inst self.img (numpy.array): current image
+        :inst self.particles (list): initial set of filtered particles
+        :inst self.weights (list): particle weights (via self.track)
+        :inst self.center (tuple): best guess of where object is in image
         """
         self.object = object
         self.img = img
@@ -89,13 +83,11 @@ class Tracker:
     def compareMSE(self, img1, img2, sigma=10.):
         """Calculate the similarity of two images using Mean Squared Error.
         
-        Parameters:
-            img1 (numpy.array): First image
-            img2 (numpy.array): Second image
-            sigma (float): MSE weight
+        :param img1 (numpy.array): First image
+        :param img2 (numpy.array): Second image
+        :param sigma (float): MSE weight
         
-        Returns:
-            similarity (float): <=1.0 where 1.0 means the images are alike.
+        :return similarity (float): <=1.0 where 1.0 means images are equal
         """
         # If different shape, throw an error
         if img1.shape != img2.shape:
@@ -112,12 +104,10 @@ class Tracker:
         """Resample particles using a sampling wheel
         Reference: https://www.youtube.com/watch?v=wNQVo6uOgYA
         
-        Parameters:
-            particles (list): (row,col) locations of each particle
-            weights (list): weight of each particle
+        :param particles (list): (row,col) locations of each particle
+        :param weights (list): weight of each particle
         
-        Returns:
-            new_particles (list): resampled particles
+        :return new_particles (list): resampled particles
         """
         new_particles = []
         N = len(particles)
@@ -139,8 +129,7 @@ class Tracker:
     def weigh_particles(self):
         """Produces a list of particle weights
         
-        Returns:
-            weights (list): weight of each particle
+        :return weights (list): weight of each particle
         """
         weights = []
         for i in range(len(self.particles)):
@@ -173,11 +162,9 @@ class Tracker:
     def track(self, img):
         """Guesses where our object is in the new image
         
-        Parameters:
-            img (np.array): New image
+        :param img (np.array): New image
         
-        Returns:
-            center (tuple): Best guess of object's center
+        :return center (tuple): Best guess of object's center
         """
         self.img = img
         self.weights = self.weigh_particles()
@@ -193,6 +180,4 @@ class Tracker:
             v_weighted_mean += self.particles[i][1] * self.weights[i]
         
         self.center = (int(u_weighted_mean), int(v_weighted_mean))
-        ### TODO: Update the object template with the new appearance
-        
         return self.center

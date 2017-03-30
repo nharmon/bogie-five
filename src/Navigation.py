@@ -13,9 +13,8 @@ class graphSLAM:
     def __init__(self, measurement_noise=2, motion_noise=2):
         """Initialize the graphs
         
-        Instantiates:
-            self.Omega (numpy.array): Pose and landmark estimation matrix
-            self.Xi (numpy.array): Vector matrix
+        :inst self.Omega (numpy.array): Pose and landmark estimation matrix
+        :inst self.Xi (numpy.array): Vector matrix
         """
         self.Omega = np.zeros((3,3)) ###TODO: How to initialize landmarks
         self.Xi = np.zeros((3,1))    ###      Grow landmark matrix?
@@ -25,9 +24,9 @@ class graphSLAM:
     def process(self, measurements, motion):
         """Updates Omega and Xi using new measurements and movement
         
-        Parameters:
-            measurements (list): Measurement vectors
-            motion (list): Motion displacement vectors
+        :param measurements (list): Measurement vectors
+        :param motion (list): Motion displacement vectors
+        :return (bool): True if processing successful
         """
         for measurement in measurements:
             m = 2 * (1 + measurement[0])
@@ -63,8 +62,7 @@ class graphSLAM:
     def calc_mu(self):
         """Calculate the estimated pose and landmark matrix
         
-        Returns:
-            mu (numpy.array): estimated localization and mapping matrix
+        :return mu (numpy.array): estimated localization and mapping matrix
         """
         mu = np.dot(np.linalg.inv(Omega), Xi)
         return mu
