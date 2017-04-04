@@ -72,7 +72,7 @@ class Tracker:
         :inst self.center (tuple): best guess of where object is in image
         """
         self.object = cv2.GaussianBlur(object,(15,15),7)
-        self.img = img
+        self.img = cv2.GaussianBlur(img,(15,15),7)
         self.maxrw = 0.
         
         # Generate particles randomly
