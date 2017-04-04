@@ -13,17 +13,17 @@ import time
 class Vision:
     """Provides a vision capability using the raspberry pi camera.
     """
-    def __init__(self, res=(320, 240), framerate=24):
+    def __init__(self, res=(640, 480), framerate=24):
         """Initialize the vision class
         
         :inst self.camera (picamera class): Camera object
         """
         self.camera = picamera.PiCamera()
         self.camera.resolution = res
-        self.camera.framerate = 1
+        self.camera.framerate = framerate
         time.sleep(2)
-        self.camera.shutter_speed = 150000
-        self.camera.iso = 800
+        #self.camera.shutter_speed = 150000
+        #self.camera.iso = 800
     
     def makePanorama(self, images):
         """Generate a panorama from multiple images
@@ -66,18 +66,17 @@ class Tracker:
         
         :inst self.object (numpy.array): object template
         :inst self.img (numpy.array): current image
+        :inst self.maxrw (float): current maximum raw weight
         :inst self.particles (list): initial set of filtered particles
         :inst self.weights (list): particle weights (via self.track)
         :inst self.center (tuple): best guess of where object is in image
         """
-        self.object = object
+        self.object = cv2.GaussianBlur(object,(15,15),7)
         self.img = img
+        self.maxrw = 0.
         
         # Generate particles randomly
-        particles = np.random.rand(num_particles,2)
-        particles[:,0] *= self.img.shape[0]
-        particles[:,1] *= self.img.shape[1]
-        self.particles = particles.astype(int).tolist()
+        self.particles = self.genNewParticles(100)
         self.center = self.track(self.img)
     
     def compareMSE(self, img1, img2, sigma=10.):
@@ -99,6 +98,43 @@ class Tracker:
         mse /= float(img1.shape[0] * img1.shape[1])
         similarity = np.exp(-mse / (2 * (sigma ** 2)))
         return similarity
+    
+    def genNewParticles(self, num_particles=100):
+        """Generate a new set particles
+        
+        :return (numpy.array): Array of new particles
+        """
+        particles = np.random.rand(num_particles,2)
+        particles[:,0] *= self.img.shape[0]
+        particles[:,1] *= self.img.shape[1]
+        return particles.astype(int).tolist()
+    
+    def getParticleWeightedMean(self, particles, weights):
+        """Produce the weighted mean of particles
+        
+        :param particles (numpy.array): Array of particle coordinates
+        :param weights (numpy.array): Particle weights
+        
+        :return (tuple): Weighted mean
+        """
+        u_weighted_mean = 0.
+        v_weighted_mean = 0.
+        for i in range(len(particles)):
+            u_weighted_mean += particles[i][0] * weights[i]
+            v_weighted_mean += particles[i][1] * weights[i]
+
+        return (int(u_weighted_mean), int(v_weighted_mean))
+    
+    def normWeights(self, weights):
+        """Normalizes particle weights
+        
+        :param weights (numpy.array): Particle weights
+        :returns (numpy.array): Normalized weights
+        """
+        if np.sum(weights) == 0: # None of the particles were valid?
+            return np.ones(len(weights)) / len(weights)
+        
+        return weights / np.sum(weights)
     
     def resample(self, particles, weights):
         """Resample particles using a sampling wheel
@@ -126,6 +162,28 @@ class Tracker:
         
         return new_particles
     
+    def track(self, img):
+        """Guesses where our object is in the new image
+        
+        :param img (np.array): New image
+        
+        :return center (tuple): Best guess of object's center
+        """
+        self.img = cv2.GaussianBlur(img,(15,15),7)
+        self.weights = self.weigh_particles()
+        if self.maxrw < 0.1: # Wasn't found
+            self.particles = self.genNewParticles(100)
+            return False
+        
+        self.particles = self.resample(self.particles, self.weights)
+        self.weights = self.weigh_particles()
+        if self.maxrw < 0.1: # Wasn't found
+            return False
+        
+        self.center = self.getParticleWeightedMean(self.particles, 
+                                                   self.weights)
+        return self.center
+    
     def weigh_particles(self):
         """Produces a list of particle weights
         
@@ -151,33 +209,6 @@ class Tracker:
                 similarity = self.compareMSE(p_frame, self.object)
                 weights.append(similarity)
         
-        # Normalize the weights
-        if np.sum(weights) > 0:
-            weights /= np.sum(weights)
-        else: # None of the particles were valid?
-            weights = np.ones(len(weights)) / len(weights)
-        
-        return weights
-    
-    def track(self, img):
-        """Guesses where our object is in the new image
-        
-        :param img (np.array): New image
-        
-        :return center (tuple): Best guess of object's center
-        """
-        self.img = img
-        self.weights = self.weigh_particles()
-        self.particles = self.resample(self.particles, self.weights)
-        self.weights = self.weigh_particles()
-        if max(self.weights) == 1./len(self.particles):    # Wasn't found
-            return False
-        
-        u_weighted_mean = 0.
-        v_weighted_mean = 0.
-        for i in range(len(self.particles)):
-            u_weighted_mean += self.particles[i][0] * self.weights[i]
-            v_weighted_mean += self.particles[i][1] * self.weights[i]
-        
-        self.center = (int(u_weighted_mean), int(v_weighted_mean))
-        return self.center
+        self.maxrw = np.max(weights)
+        return self.normWeights(weights)
+

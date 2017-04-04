@@ -102,6 +102,6 @@ class Drive:
         
         self.mh.getMotor(1).setSpeed(128)
         self.mh.getMotor(2).setSpeed(128)
-        time.sleep(0.011 * np.abs(angle))
+        time.sleep(0.63 * np.abs(angle))
         self.stop()
         return True
