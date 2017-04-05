@@ -37,6 +37,7 @@ def follow(target, speed=50):
         
         # If target wasn't found, turn 0.5 radians to the right and try again.
         if pos == False:
+            drive.shutdown()
             if i < 5:
                 i += 1
                 continue
