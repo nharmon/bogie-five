@@ -55,23 +55,23 @@ class Vision:
 
 
 class Tracker:
-    """Class for tracking a visual object using a particle filter.
+    """Class for tracking a visual target using a particle filter.
     """
-    def __init__(self, object, img, num_particles=100):
+    def __init__(self, target, img, num_particles=100):
         """Initialize
         
-        :param object (numpy.array): template for object we're tracking
+        :param target (numpy.array): template for target we're tracking
         :param img (numpy.array): first image for tracking
         :param particles (int): number of particles to use
         
-        :inst self.object (numpy.array): object template
+        :inst self.target (numpy.array): target template
         :inst self.img (numpy.array): current image
         :inst self.maxrw (float): current maximum raw weight
         :inst self.particles (list): initial set of filtered particles
         :inst self.weights (list): particle weights (via self.track)
-        :inst self.center (tuple): best guess of where object is in image
+        :inst self.center (tuple): best guess of where target is in image
         """
-        self.object = cv2.GaussianBlur(object,(15,15),7)
+        self.target = cv2.GaussianBlur(target,(15,15),7)
         self.img = cv2.GaussianBlur(img,(15,15),7)
         self.maxrw = 0.
         
@@ -163,11 +163,11 @@ class Tracker:
         return new_particles
     
     def track(self, img):
-        """Guesses where our object is in the new image
+        """Guesses where our target is in the new image
         
         :param img (np.array): New image
         
-        :return center (tuple): Best guess of object's center
+        :return center (tuple): Best guess of target's center
         """
         self.img = cv2.GaussianBlur(img,(15,15),7)
         self.weights = self.weigh_particles()
@@ -182,6 +182,17 @@ class Tracker:
         
         self.center = self.getParticleWeightedMean(self.particles, 
                                                    self.weights)
+        #TODO: Update self.target using new center. Need to test and 
+        #      validate method below. Also look into sampling resized
+        #      targets (one bigger, one smaller) to adjust for size
+        #      changes. Should we blend new image with old? How does
+        #      that degrade over time?
+        #y_top = min(0,center[1]-self.target.shape[1]/2)
+        #y_bottom = y_top + target.shape[1]
+        #x_left = min(0,center[0]-self.target.shape[0]/2)
+        #x_right = x_left + target.shape[0]
+        #target = img[y_top:y_bottom,x_left,x_right]
+        #self.target = cv2.GaussianBlur(target,(15,15),7)
         return self.center
     
     def weigh_particles(self):
@@ -193,20 +204,20 @@ class Tracker:
         for i in range(len(self.particles)):
             # Construct our particle frame
             #print i
-            p_t = int(self.particles[i][0] - np.floor(self.object.shape[0]/2.))
-            p_b = int(self.particles[i][0] + np.ceil(self.object.shape[0]/2.))
-            p_l = int(self.particles[i][1] - np.floor(self.object.shape[1]/2.))
-            p_r = int(self.particles[i][1] + np.ceil(self.object.shape[1]/2.))
+            p_t = int(self.particles[i][0] - np.floor(self.target.shape[0]/2.))
+            p_b = int(self.particles[i][0] + np.ceil(self.target.shape[0]/2.))
+            p_l = int(self.particles[i][1] - np.floor(self.target.shape[1]/2.))
+            p_r = int(self.particles[i][1] + np.ceil(self.target.shape[1]/2.))
             try:
                 p_frame = self.img[p_t:p_b,p_l:p_r]
             except:
                 weights.append(0.)
                 continue
             
-            if p_frame.shape <> self.object.shape:    # Frame is off the image
+            if p_frame.shape <> self.target.shape:    # Frame is off the image
                 weights.append(0.)
             else: 
-                similarity = self.compareMSE(p_frame, self.object)
+                similarity = self.compareMSE(p_frame, self.target)
                 weights.append(similarity)
         
         self.maxrw = np.max(weights)
