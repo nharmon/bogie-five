@@ -3,8 +3,10 @@
 #
 # Follow object test
 #
+from Camera import *
 from Motion import *
 from Vision import *
+import numpy as np
 import cv2
 import sys
 import time
@@ -16,8 +18,8 @@ def follow(target, speed=50):
     :param speed (int): 0<x<254, Maximum motor speed 
     """
     drive = Drive()
-    vision = Vision()
-    img = vision.shoot()
+    bogiecam = BogieCamera()
+    img = bogiecam.shoot()
     tracker = Tracker(target, img)
     img_index = 0
     i = 0
@@ -32,12 +34,14 @@ def follow(target, speed=50):
         # End Testing / Diagnostic
         
         # Update image tracker with new image taken
-        img = vision.shoot()
+        img = bogiecam.shoot()
         pos = tracker.track(img)
         
-        # If target wasn't found, turn 0.5 radians to the right and try again.
+        # If target wasn't found, try again (the particle filter will have
+        # generated new random particles). After 5 attempts, turn 0.5 radians
+        # to the right and start again.
         if pos == False:
-            drive.shutdown()
+            drive.stop()
             if i < 5:
                 i += 1
                 continue
@@ -48,10 +52,10 @@ def follow(target, speed=50):
         
         # If target is found, Use the X coordinate of the target position in 
         # the camera as the steering input.
-        # TODO: May need to implement PIL if camera isn't perfectly straight
+        # TODO: May need to implement PID if camera isn't perfectly straight
         steering = ((2. * tracker.center[0]) / img.shape[1]) - 1
         drive.drive(speed,steering)
-        time.sleep(0.5)
+        #time.sleep(0.5)
         
     drive.shutdown()
     return True
