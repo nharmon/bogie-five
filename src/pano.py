@@ -40,5 +40,5 @@ if __name__ == '__main__':
     except:
         exit("Invalid angle")
     
-    pano = bogiecam.makePanorama(photos)
+    #pano = bogiecam.makePanorama(photos)
     cv2.imwrite("pano.jpg", pano)

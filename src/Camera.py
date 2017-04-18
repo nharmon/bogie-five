@@ -25,18 +25,6 @@ class BogieCamera:
         #self.camera.shutter_speed = 150000
         #self.camera.iso = 800
     
-    def makePanorama(self, images):
-        """Generate a panorama from multiple images
-        
-        :param images (list): List of np.array images
-        
-        :return result (numpy.array): Panorama
-        """
-        #TODO: implement stiching and warping from cv2
-        
-        
-        return result
-    
     def shoot(self):
         """Takes a photo from the camera
         
