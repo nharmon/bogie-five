@@ -28,7 +28,8 @@ def follow(target, speed=50):
         t_img = genTrackingImg(img, tracker)
         cv2.imwrite('../../output/'+str(img_index)+'.jpg',t_img)
         cv2.imwrite('../../output/latest.jpg',t_img)
-        cv2.imwrite('../../output/raw.jpg',img)
+        cv2.imwrite('../../output/'+str(img_index)+'_raw.jpg',img)
+        cv2.imwrite('../../output/latest_raw.jpg',img)
         print tracker.maxrw
         img_index += 1
         # End Testing / Diagnostic
@@ -42,12 +43,12 @@ def follow(target, speed=50):
         # to the right and start again.
         if pos == False:
             drive.stop()
-            if i < 5:
+            if i > 4:
+                drive.turn(0.5)
+                i = 0
+            else:
                 i += 1
-                continue
             
-            drive.turn(0.5)
-            i = 0
             continue
         
         # If target is found, Use the X coordinate of the target position in 
@@ -55,7 +56,6 @@ def follow(target, speed=50):
         # TODO: May need to implement PID if camera isn't perfectly straight
         steering = ((2. * tracker.center[0]) / img.shape[1]) - 1
         drive.drive(speed,steering)
-        #time.sleep(0.5)
         
     drive.shutdown()
     return True
