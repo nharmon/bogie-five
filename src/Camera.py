@@ -4,16 +4,16 @@
 # Camera module
 #
 import cv2
+import io
 import numpy as np
 import picamera
-import picamera.array
 import random
 import time
 
 class BogieCamera:
     """Interface to the rover's raspberry pi camera.
     """
-    def __init__(self, res=(640, 480), framerate=24):
+    def __init__(self, res=(740, 480), framerate=30):
         """Initialize the vision class
         
         :inst self.camera (picamera class): Camera object
@@ -21,22 +21,16 @@ class BogieCamera:
         self.camera = picamera.PiCamera()
         self.camera.resolution = res
         self.camera.framerate = framerate
+        self.camera.start_preview()
         time.sleep(2)
-        #self.camera.shutter_speed = 150000
-        #self.camera.iso = 800
     
     def shoot(self):
         """Takes a photo from the camera
         
         :return output (numpy.array): Photograph in array form
         """
-        # Image buffer must be multiple of 32 in x, multiple of 16 in y
-        buffer_y = int(32 * np.ceil(self.camera.resolution[0] / 32.))
-        buffer_x = int(16 * np.ceil(self.camera.resolution[1] / 16.))
-        output = np.empty((buffer_x * buffer_y * 3,), dtype=np.uint8)
-        self.camera.capture(output, 'rgb')
-        output = output.reshape((buffer_x, buffer_y, 3))
-        output = output[:self.camera.resolution[0],
-                        :self.camera.resolution[1],
-                        :]
+        stream = io.BytesIO()
+        self.camera.capture(stream, format='jpeg')
+        data = np.fromstring(stream.getvalue(), dtype=np.uint8)
+        output = cv2.imdecode(data, 1)
         return output

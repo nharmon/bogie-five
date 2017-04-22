@@ -29,8 +29,6 @@ class Drive:
         :param speed (int): -255 to 255, negative vals move backward
         :param steering (float): -1 to 1, negative vals steer left
         """
-        speed = int(speed)
-        
         if speed == 0:    # Stop
             self.stop()
             return True
@@ -41,18 +39,10 @@ class Drive:
             self.mh.getMotor(1).run(Adafruit_MotorHAT.BACKWARD)
             self.mh.getMotor(2).run(Adafruit_MotorHAT.BACKWARD)
         
-        if steering == 0:    # Straight ahead
-            self.mh.getMotor(1).setSpeed(np.abs(speed))
-            self.mh.getMotor(2).setSpeed(np.abs(speed))
-        elif steering > 0:    # Turn to the right
-            speed2 = int((1-np.abs(steering))*np.abs(speed))
-            self.mh.getMotor(1).setSpeed(np.abs(speed))
-            self.mh.getMotor(2).setSpeed(speed2)
-        else:    # Turn to the left
-            speed2 = int((1-np.abs(steering))*np.abs(speed))
-            self.mh.getMotor(1).setSpeed(speed2)
-            self.mh.getMotor(2).setSpeed(np.abs(speed))
-        
+        power_l = 2 * np.abs(speed) * ((steering + 1.) / 2.)
+        power_r = 2 * np.abs(speed) - power_l
+        self.mh.getMotor(1).setSpeed(int(power_l))
+        self.mh.getMotor(2).setSpeed(int(power_r))
         return True
     
     def move(self, distance=0.):

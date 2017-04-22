@@ -20,41 +20,42 @@ def follow(target, speed=50):
     drive = Drive()
     bogiecam = BogieCamera()
     img = bogiecam.shoot()
-    tracker = Tracker(target, img)
+    tracker = Tracker(target, img, 250)
     img_index = 0
     i = 0
     while True:
-        # Testing / Diagnostic
-        t_img = genTrackingImg(img, tracker)
-        cv2.imwrite('../../output/'+str(img_index)+'.jpg',t_img)
-        cv2.imwrite('../../output/latest.jpg',t_img)
-        cv2.imwrite('../../output/'+str(img_index)+'_raw.jpg',img)
-        cv2.imwrite('../../output/latest_raw.jpg',img)
-        print tracker.maxrw
-        img_index += 1
-        # End Testing / Diagnostic
-        
-        # Update image tracker with new image taken
         img = bogiecam.shoot()
-        pos = tracker.track(img)
-        
-        # If target wasn't found, try again (the particle filter will have
-        # generated new random particles). After 5 attempts, turn 0.5 radians
-        # to the right and start again.
-        if pos == False:
-            drive.stop()
-            if i > 4:
-                drive.turn(0.5)
-                i = 0
-            else:
-                i += 1
+        for _ in range(25): # Attempt max 25 iterations of PF
+            found = tracker.track(img)
+
+            # Testing / Diagnostic
+            img_index += 1
+            t_img = genTrackingImg(img, tracker)
+            t_target = tracker.target
+            t_img[0:t_target.shape[0],0:t_target.shape[1]] = t_target
+            cv2.imwrite('../../output/'+str(img_index)+'.jpg',t_img)
+            cv2.imwrite('../../output/latest.jpg',t_img)
+            #cv2.imwrite('../../output/'+str(img_index)+'_raw.jpg',img)
+            #cv2.imwrite('../../output/latest_raw.jpg',img)
+            print img_index, tracker.minrw, tracker.maxrw
+            # End Testing / Diagnostic
             
+            # If target is locked on, proceed.
+            if found:
+                break
+
+            drive.stop()
+            
+        else: # Target not found, turn 0.5 radians to the right
+            drive.turn(0.5)
+            tracker.genNewParticles(100)
             continue
         
         # If target is found, Use the X coordinate of the target position in 
         # the camera as the steering input.
         # TODO: May need to implement PID if camera isn't perfectly straight
-        steering = ((2. * tracker.center[0]) / img.shape[1]) - 1
+        steering = ((2. * tracker.center[1]) / img.shape[1]) - 1
+        print steering
         drive.drive(speed,steering)
         
     drive.shutdown()
@@ -74,12 +75,12 @@ def genTrackingImg(img, tracker):
             cv2.circle(out, (v,u), 2, (0,255,255), -1)
     
     center = tracker.center
-    object = tracker.object
-    if center is not False:
-        cv2.rectangle(out, (int(center[1]) - object.shape[1]/2,
-                            int(center[0]) - object.shape[0]/2),
-                           (int(center[1]) + object.shape[1]/2,
-                            int(center[0]) + object.shape[0]/2),
+    target = tracker.target
+    if center is not None:
+        cv2.rectangle(out, (int(center[1]) - target.shape[1]/2,
+                            int(center[0]) - target.shape[0]/2),
+                           (int(center[1]) + target.shape[1]/2,
+                            int(center[0]) + target.shape[0]/2),
                       (255,255,255), 3)
     
     return out

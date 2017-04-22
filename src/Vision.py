@@ -20,6 +20,8 @@ class Tracker:
         :param particles (int): number of particles to use
         :inst self.target (numpy.array): target template
         :inst self.img (numpy.array): current image
+        :inst self.num_particles (int): number of particles to use
+        :inst self.minrw (float): current minimum raw weight
         :inst self.maxrw (float): current maximum raw weight
         :inst self.particles (list): initial set of filtered particles
         :inst self.weights (list): particle weights (via self.track)
@@ -27,11 +29,13 @@ class Tracker:
         """
         self.target = cv2.GaussianBlur(target,(15,15),7)
         self.img = cv2.GaussianBlur(img,(15,15),7)
+        self.num_particles = num_particles
+        self.minrw = 0.
         self.maxrw = 0.
         
         # Generate particles randomly
-        self.particles = self.genNewParticles(100)
-        self.center = self.track(self.img)
+        self.particles = self.genNewParticles(self.num_particles)
+        self.center = None
     
     def compareMSE(self, img1, img2, sigma=10.):
         """Calculate the similarity of two images using Mean Squared Error.
@@ -141,30 +145,37 @@ class Tracker:
         """Guesses where our target is in the new image
         
         :param img (np.array): New image
-        :return center (tuple): Best guess of target's center
+        :return (boolean): True if object found, otherwise false
         """
         self.img = cv2.GaussianBlur(img,(15,15),7)
         self.weights = self.weigh_particles()
-        if self.maxrw < 0.1: # Wasn't found
-            self.particles = self.genNewParticles(100)
+
+        if self.maxrw < 0.01: # Nothing close. Get new particles and try again
+            self.center = None
+            self.particles = self.genNewParticles(self.num_particles)
             return False
         
+        # Resample and reweight
         self.particles = self.resample(self.particles, self.weights)
         self.weights = self.weigh_particles()
-        if self.maxrw < 0.1: # Wasn't found
+        if self.maxrw < 0.1: # Close but still no good particles
+            self.center = None
             return False
         
-        self.center = self.getParticleWeightedMean(self.particles, 
-                                                   self.weights)
+        # If the particles are all within a 15x15 area, consider it a lock
+        pr_x = np.ptp(np.array(self.particles)[:,1])
+        pr_y = np.ptp(np.array(self.particles)[:,0])
+        if pr_x < 1.5 * self.target.shape[0] and \
+           pr_y < 1.5 * self.target.shape[1]:
+            self.center = self.getParticleWeightedMean(self.particles,
+                                                       self.weights)
+            self.target = self.getImageSection(self.center, self.target.shape)
+            return True
         
-        # Update self.target using new center.
-        self.target = getImageSection(self, self.center, self.target.shape)
-
         #TODO: Update self.target in a way that accounts for size changes
         #      in the target. Should we blend the new self.target above with
         #      the old one to do this? How would that degrade over time?
-        
-        return self.center
+        return False
     
     def weigh_particles(self):
         """Produces a list of particle weights
@@ -173,14 +184,14 @@ class Tracker:
         """
         weights = []
         for i in range(len(self.particles)):
-            p_frame = self.getImageSection(self, self.particles[i], 
+            p_frame = self.getImageSection(self.particles[i], 
                                            self.target.shape)
-            if p_frame == False:
+            if type(p_frame) == np.ndarray:
+                similarity = self.compareMSE(p_frame, self.target)
+                weights.append(similarity)
+            else:
                 weights.append(0.)
-                continue
-            
-            similarity = self.compareMSE(p_frame, self.target)
-            weights.append(similarity)
         
+        self.minrw = np.min(weights)
         self.maxrw = np.max(weights)
         return self.normWeights(weights)
